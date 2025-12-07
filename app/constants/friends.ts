@@ -40,6 +40,8 @@ export const FRIENDS = [
   {
     username: 'KaioTheRuthless',
     platform: 'psn',
+    headshot: '/jordan-headshot.png',
+    fullBody: '/jordan.PNG'
   },
   {
     username: 'Mrboss_statuz',

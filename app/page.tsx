@@ -31,7 +31,15 @@ export default function Home() {
       </div>
       
       <footer className="absolute bottom-4 text-gray-600 text-sm">
-        Data provided by Tracker.gg
+        Data provided by{' '}
+        <a 
+          href="https://tracker.gg" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="hover:text-gray-400 transition-colors underline"
+        >
+          Tracker.gg
+        </a>
       </footer>
     </main>
   );

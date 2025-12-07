@@ -5,36 +5,47 @@ export async function GET(
   { params }: { params: Promise<{ platform: string; username: string }> }
 ) {
   const { platform, username } = await params;
+  const apiKey = process.env.TRACKER_GG_API_KEY;
   
-  // Map platform names: gametools uses 'ps5', 'xboxone', 'pc' etc.
-  const platformMap: Record<string, string> = {
-    'psn': 'ps5', // PlayStation Network -> PS5
-    'xbl': 'xboxone', // Xbox Live -> Xbox One
-    'origin': 'pc', // Origin -> PC
-    'pc': 'pc',
-  };
+  if (!apiKey) {
+    console.error('TRACKER_GG_API_KEY is not set');
+    return NextResponse.json(
+      { error: 'API key not configured' },
+      { status: 500 }
+    );
+  }
   
-  const mappedPlatform = platformMap[platform.toLowerCase()] || platform;
   const encodedUsername = encodeURIComponent(username);
-  
-  // Gametools.network API endpoint - no API key required!
-  const apiUrl = `https://api.gametools.network/bf6/stats/?name=${encodedUsername}&platform=${mappedPlatform}`;
+  const apiUrl = `https://api.tracker.gg/api/v2/bf6/standard/profile/${platform}/${encodedUsername}`;
 
-  console.log('Fetching from GameTools:', {
-    url: apiUrl,
-    originalPlatform: platform,
-    mappedPlatform: mappedPlatform,
-  });
+  console.log('Fetching from Tracker.gg:', apiUrl);
 
   try {
     const response = await fetch(apiUrl, {
       headers: {
         'Accept': 'application/json',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'TRN-Api-Key': apiKey,
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Origin': 'https://tracker.gg',
+        'Referer': 'https://tracker.gg/',
+        'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-site',
       },
+      cache: 'no-store',
     });
+
+    console.log('Tracker.gg response status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error(`Tracker.gg API Error (${response.status}):`, errorText);
+      
       let errorData;
       try {
         errorData = JSON.parse(errorText);
@@ -42,11 +53,9 @@ export async function GET(
         errorData = { message: errorText || `HTTP ${response.status}` };
       }
       
-      console.error(`GameTools API Error (${response.status}):`, errorData);
-      
       return NextResponse.json(
         { 
-          error: errorData.message || errorData.errors?.[0] || `Failed to fetch stats: ${response.statusText}`,
+          error: errorData.message || `Failed to fetch stats: ${response.statusText}`,
           status: response.status 
         },
         { status: response.status }
@@ -54,18 +63,11 @@ export async function GET(
     }
 
     const data = await response.json();
-    
-    // Check if gametools returned an error in the response body
-    if (data.errors && data.errors.length > 0) {
-      return NextResponse.json(
-        { error: data.errors[0] || 'Player not found' },
-        { status: 404 }
-      );
-    }
+    console.log('Successfully fetched data for:', username);
     
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error fetching stats from GameTools:', error);
+    console.error('Error fetching stats from Tracker.gg:', error);
     return NextResponse.json(
       { error: 'Internal server error while fetching stats' },
       { status: 500 }

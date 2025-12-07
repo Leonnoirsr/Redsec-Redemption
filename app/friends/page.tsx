@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { FRIENDS } from '@/app/constants/friends';
 import { FriendCard } from '@/app/components/FriendCard';
 import { ArrowLeft, Users } from 'lucide-react';
+import { fetchPlayerStats } from '@/app/lib/stats-fetcher';
 
 export default function FriendsPage() {
   const [friendsData, setFriendsData] = useState<any[]>([]);
@@ -15,22 +16,9 @@ export default function FriendsPage() {
       // Create an array of promises for fetching each friend's stats
       const promises = FRIENDS.map(async (friend) => {
         try {
-          // Fetch directly from Tracker.gg client-side to bypass Cloudflare
-          const encodedUsername = encodeURIComponent(friend.username);
-          const apiUrl = `https://api.tracker.gg/api/v2/bf6/standard/profile/${friend.platform}/${encodedUsername}`;
-          
-          const response = await fetch(apiUrl, {
-            headers: {
-              'Accept': 'application/json',
-            },
-            credentials: 'include',
-          });
-
-          if (!response.ok) {
-            return { ...friend, data: null, error: true };
-          }
-
-          const result = await response.json();
+          // Fetch using the unified stats-fetcher utility
+          // This checks NEXT_PUBLIC_USE_MOCK_DATA env var and uses mock data or live API
+          const result = await fetchPlayerStats(friend.platform, friend.username);
           return { ...friend, data: result.data };
         } catch (error) {
           console.error(`Error fetching stats for ${friend.username}:`, error);

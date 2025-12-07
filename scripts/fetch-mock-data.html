@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fetch Mock Data</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #1a1a1a;
+      color: #fff;
+    }
+    button {
+      background: #ff4655;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 10px 0;
+    }
+    button:hover {
+      background: #e03e4c;
+    }
+    button:disabled {
+      background: #666;
+      cursor: not-allowed;
+    }
+    #status {
+      margin: 20px 0;
+      padding: 15px;
+      background: #2a2a2a;
+      border-radius: 6px;
+      min-height: 100px;
+      font-family: monospace;
+      white-space: pre-wrap;
+    }
+    .success { color: #4ade80; }
+    .error { color: #f87171; }
+    .info { color: #60a5fa; }
+    #download {
+      display: none;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎮 Fetch Battlefield 6 Mock Data</h1>
+  <p>This will fetch stats for all your friends and generate a JSON file you can save.</p>
+  
+  <button id="fetchBtn" onclick="fetchAllStats()">Fetch All Stats</button>
+  
+  <div id="status"></div>
+  
+  <div id="download">
+    <h3>✅ Done! Download the JSON file:</h3>
+    <button onclick="downloadJSON()">Download mock-stats.json</button>
+  </div>
+
+  <script>
+    const FRIENDS = [
+      { username: 'LeonNoirSR', platform: 'psn' },
+      { username: 'SmoothStaySaucin', platform: 'psn' },
+      { username: 'Who_Else_But_Dee', platform: 'psn' },
+      { username: 'Kjnumba_5', platform: 'psn' },
+      { username: 'Blackmayo187', platform: 'psn' },
+      { username: 'RJ__2K', platform: 'psn' },
+      { username: 'KaioTheRuthless', platform: 'psn' },
+      { username: 'Mrboss_statuz', platform: 'psn' },
+      { username: 'Xx-LA_FiNE_ST-xX', platform: 'psn' },
+    ];
+
+    let mockData = { psn: {} };
+    let statusEl = document.getElementById('status');
+    let fetchBtn = document.getElementById('fetchBtn');
+    let downloadDiv = document.getElementById('download');
+
+    function log(message, type = 'info') {
+      const className = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
+      statusEl.innerHTML += `<span class="${className}">${message}</span>\n`;
+      statusEl.scrollTop = statusEl.scrollHeight;
+    }
+
+    async function fetchAllStats() {
+      fetchBtn.disabled = true;
+      statusEl.innerHTML = '';
+      mockData = { psn: {} };
+      
+      log('🎮 Fetching Battlefield 6 stats for all friends...\n', 'info');
+      
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const friend of FRIENDS) {
+        try {
+          const encodedUsername = encodeURIComponent(friend.username);
+          const apiUrl = `https://api.tracker.gg/api/v2/bf6/standard/profile/${friend.platform}/${encodedUsername}`;
+          
+          log(`Fetching ${friend.username}...`, 'info');
+          
+          const response = await fetch(apiUrl, {
+            headers: {
+              'Accept': 'application/json',
+            },
+            credentials: 'include',
+          });
+
+          if (!response.ok) {
+            log(`❌ Failed to fetch ${friend.username}: ${response.status} ${response.statusText}`, 'error');
+            failCount++;
+            continue;
+          }
+
+          const data = await response.json();
+          mockData[friend.platform][friend.username] = data;
+          
+          log(`✅ Successfully fetched ${friend.username}`, 'success');
+          successCount++;
+          
+          // Small delay to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+        } catch (error) {
+          log(`❌ Error fetching ${friend.username}: ${error.message}`, 'error');
+          failCount++;
+        }
+      }
+
+      log(`\n📊 Summary:`, 'info');
+      log(`✅ Successfully fetched: ${successCount}`, 'success');
+      log(`❌ Failed: ${failCount}`, 'error');
+      
+      if (successCount > 0) {
+        downloadDiv.style.display = 'block';
+        log(`\n💾 Ready to download! Click the download button above.`, 'success');
+      } else {
+        log(`\n⚠️ No data was fetched. Make sure you're logged into tracker.gg in this browser.`, 'error');
+        fetchBtn.disabled = false;
+      }
+    }
+
+    function downloadJSON() {
+      const jsonStr = JSON.stringify(mockData, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'mock-stats.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      log(`\n📥 File downloaded! Save it to: app/data/mock-stats.json`, 'success');
+    }
+  </script>
+</body>
+</html>
+

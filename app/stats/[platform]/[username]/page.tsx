@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { StatsCard } from '@/app/components/ui/StatsCard';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { FRIENDS } from '@/app/constants/friends';
+import { fetchPlayerStats } from '@/app/lib/stats-fetcher';
 
 interface StatsPageProps {
   params: Promise<{ platform: string; username: string }>;
@@ -18,45 +19,14 @@ export default function StatsPage({ params }: StatsPageProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Fetch directly from Tracker.gg API - works in browser due to cookies/session
-    // This bypasses Cloudflare blocking that happens on server-side requests
+    // Fetch stats using the unified stats-fetcher utility
+    // This checks NEXT_PUBLIC_USE_MOCK_DATA env var and uses mock data or live API
     const fetchStats = async () => {
       try {
-        const encodedUsername = encodeURIComponent(username);
-        const apiUrl = `https://api.tracker.gg/api/v2/bf6/standard/profile/${platform}/${encodedUsername}`;
-        
-        const response = await fetch(apiUrl, {
-          headers: {
-            'Accept': 'application/json',
-          },
-          credentials: 'include', // Include cookies
-        });
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          let errorData;
-          try {
-            errorData = JSON.parse(errorText);
-          } catch {
-            errorData = { message: errorText || `HTTP ${response.status}` };
-          }
-          setError(errorData.message || 'Failed to fetch stats');
-          setLoading(false);
-          return;
-        }
-        
-        const result = await response.json();
+        const result = await fetchPlayerStats(platform, username);
         setData(result);
-        
-        // Debug: Log available segment types to help identify Battle Royale
-        if (result?.data?.segments) {
-          console.log('Available segment types:', result.data.segments.map((s: any) => ({
-            type: s.type,
-            name: s.metadata?.name
-          })));
-        }
-      } catch (err) {
-        setError('Failed to fetch stats');
+      } catch (err: any) {
+        setError(err.message || 'Failed to fetch stats');
         console.error(err);
       } finally {
         setLoading(false);

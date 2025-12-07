@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "fetch-mock-data": "tsx scripts/fetch-mock-data.ts"
   },
   "dependencies": {
     "lucide-react": "^0.556.0",
@@ -22,6 +23,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.0.7",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }

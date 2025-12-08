@@ -1,6 +1,6 @@
 import Link           from 'next/link';
 import { SearchForm } from './components/SearchForm';
-import { Users }      from 'lucide-react';
+import { Users, Trophy } from 'lucide-react';
 
 export default function Home() {
   return (
@@ -19,13 +19,20 @@ export default function Home() {
 
         <SearchForm />
 
-        <div className="pt-8">
+        <div className="pt-8 space-y-4">
           <Link 
-            href="/friends" 
+            href="/squad-wins" 
+            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors group"
+          >
+            <Trophy className="w-5 h-5 group-hover:text-red-500 transition-colors" />
+            <span>View Squad Wins</span>
+          </Link>
+          <Link 
+            href="/individual-stats" 
             className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors group"
           >
             <Users className="w-5 h-5 group-hover:text-red-500 transition-colors" />
-            <span>View Squad Stats</span>
+            <span>View Individual Stats</span>
           </Link>
         </div>
       </div>

@@ -3,6 +3,7 @@
 import React, { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { StatsCard } from '@/app/components/ui/StatsCard';
+import { WeaponCard } from '@/app/components/ui/WeaponCard';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { FRIENDS } from '@/app/constants/friends';
 import { fetchPlayerStats } from '@/app/lib/stats-fetcher';
@@ -87,6 +88,19 @@ export default function StatsPage({ params }: StatsPageProps) {
   });
   
   const brStats = battleRoyaleSegment?.stats;
+  
+  // Extract weapon segments and sort by kills (most used)
+  const weaponSegments = segments
+    .filter((s: any) => s.type === 'weapon')
+    .map((s: any) => ({
+      name: s.metadata?.name || 'Unknown Weapon',
+      imageUrl: s.metadata?.imageUrl,
+      kills: s.stats?.kills?.value || 0,
+      killsDisplay: s.stats?.kills?.displayValue,
+    }))
+    .filter((w: any) => w.kills > 0) // Only show weapons with kills
+    .sort((a: any, b: any) => b.kills - a.kills) // Sort by kills descending
+    .slice(0, 4); // Get top 4 weapons
   
   // Debug log if BR stats found
   if (brStats) {
@@ -246,16 +260,9 @@ export default function StatsPage({ params }: StatsPageProps) {
                   className="bg-red-900/30 border-2 border-red-600"
                 />
               )}
-                </div>
-              </div>
-            )}
 
-            {/* Overall Stats Grid */}
-            {stats && (
-              <div className="space-y-4">
-                <h2 className="text-xl sm:text-2xl font-bold text-white mb-4">OVERALL STATS</h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
-              {stats.kdRatio?.displayValue && stats.kdRatio.displayValue !== 'N/A' && (
+              {/* Overall Stats - K/D and Time Played - Placed directly below Battle Royale stats */}
+              {stats?.kdRatio?.displayValue && stats.kdRatio.displayValue !== 'N/A' && (
                 <StatsCard 
                   title="K/D Ratio" 
                   value={stats.kdRatio.displayValue} 
@@ -264,21 +271,29 @@ export default function StatsPage({ params }: StatsPageProps) {
                   className="bg-gray-800/80"
                 />
               )}
-              {stats.wlPercentage?.displayValue && stats.wlPercentage.displayValue !== 'N/A' && (
+              {stats?.timePlayed?.displayValue && stats.timePlayed.displayValue !== 'N/A' && (
                 <StatsCard 
-                  title="Win %" 
-                  value={stats.wlPercentage.displayValue} 
-                  percentile={stats.wlPercentage?.percentile}
-                  rank={stats.wlPercentage?.rank}
+                  title="Time Played" 
+                  value={stats.timePlayed.displayValue} 
+                  percentile={stats.timePlayed?.percentile}
+                  rank={stats.timePlayed?.rank}
                   className="bg-gray-800/80"
                 />
               )}
-              {stats.kills?.displayValue && stats.kills.displayValue !== 'N/A' && (
+                </div>
+              </div>
+            )}
+
+            {/* Show overall stats even if BR stats are not available */}
+            {!brStats && stats && (
+              <div className="space-y-4 mb-8">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-5">
+              {stats.kdRatio?.displayValue && stats.kdRatio.displayValue !== 'N/A' && (
                 <StatsCard 
-                  title="Kills" 
-                  value={stats.kills.displayValue} 
-                  percentile={stats.kills?.percentile}
-                  rank={stats.kills?.rank}
+                  title="K/D Ratio" 
+                  value={stats.kdRatio.displayValue} 
+                  percentile={stats.kdRatio?.percentile}
+                  rank={stats.kdRatio?.rank}
                   className="bg-gray-800/80"
                 />
               )}
@@ -291,34 +306,27 @@ export default function StatsPage({ params }: StatsPageProps) {
                   className="bg-gray-800/80"
                 />
               )}
-              {/* Score/Min removed as requested */}
-              {stats.killsPerMinute?.displayValue && stats.killsPerMinute.displayValue !== 'N/A' && (
-                <StatsCard 
-                  title="Kills/Min" 
-                  value={stats.killsPerMinute.displayValue} 
-                  percentile={stats.killsPerMinute?.percentile}
-                  rank={stats.killsPerMinute?.rank}
-                  className="bg-gray-800/80"
-                />
-              )}
-              {stats.headshots?.displayValue && stats.headshots.displayValue !== 'N/A' && (
-                <StatsCard 
-                  title="Headshots" 
-                  value={stats.headshots.displayValue} 
-                  percentile={stats.headshots?.percentile}
-                  rank={stats.headshots?.rank}
-                  className="bg-gray-800/80"
-                />
-              )}
-              {stats.shotsAccuracy?.displayValue && stats.shotsAccuracy.displayValue !== 'N/A' && (
-                <StatsCard 
-                  title="Accuracy" 
-                  value={stats.shotsAccuracy.displayValue} 
-                  percentile={stats.shotsAccuracy?.percentile}
-                  rank={stats.shotsAccuracy?.rank}
-                  className="bg-gray-800/80"
-                />
-              )}
+                </div>
+              </div>
+            )}
+
+            {/* Favorites Section - Most Used Weapons */}
+            {weaponSegments.length > 0 && (
+              <div className="space-y-4 mb-8">
+                <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 flex items-center gap-2">
+                  <span className="text-red-500">⭐</span>
+                  FAVORITES
+                </h2>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-5">
+                  {weaponSegments.map((weapon: any, index: number) => (
+                    <WeaponCard
+                      key={index}
+                      name={weapon.name}
+                      imageUrl={weapon.imageUrl}
+                      kills={weapon.killsDisplay}
+                      className="bg-gray-800/80"
+                    />
+                  ))}
                 </div>
               </div>
             )}

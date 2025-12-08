@@ -10,10 +10,13 @@
     "fetch-mock-data": "tsx scripts/fetch-mock-data.ts"
   },
   "dependencies": {
+    "@vercel/blob": "^2.0.0",
+    "@vercel/kv": "^3.0.0",
     "lucide-react": "^0.556.0",
     "next": "16.0.7",
     "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "react-dom": "19.2.0",
+    "redis": "^5.10.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

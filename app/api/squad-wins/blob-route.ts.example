@@ -1,0 +1,124 @@
+// Alternative implementation using Vercel Blob Storage
+// To use this instead of KV, rename this file to route.ts and update the imports
+
+import { NextRequest, NextResponse } from 'next/server';
+import { put, list, del } from '@vercel/blob';
+
+interface SquadWin {
+  id: string;
+  players: string[];
+  date: string;
+  createdAt: string;
+}
+
+const SQUAD_WINS_BLOB_KEY = 'squad-wins.json';
+
+export async function GET() {
+  try {
+    const { blobs } = await list({ prefix: SQUAD_WINS_BLOB_KEY });
+    
+    if (blobs.length === 0) {
+      return NextResponse.json([]);
+    }
+
+    // Get the most recent blob
+    const latestBlob = blobs[0];
+    const response = await fetch(latestBlob.url);
+    const squadWins: SquadWin[] = await response.json();
+    
+    return NextResponse.json(squadWins);
+  } catch (error) {
+    console.error('Error reading squad wins:', error);
+    return NextResponse.json([], { status: 200 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { players } = body;
+
+    if (!players || !Array.isArray(players) || players.length === 0) {
+      return NextResponse.json(
+        { error: 'Players array is required' },
+        { status: 400 }
+      );
+    }
+
+    // Read existing wins
+    let squadWins: SquadWin[] = [];
+    try {
+      const { blobs } = await list({ prefix: SQUAD_WINS_BLOB_KEY });
+      if (blobs.length > 0) {
+        const response = await fetch(blobs[0].url);
+        squadWins = await response.json();
+      }
+    } catch (error) {
+      // If no existing file, start with empty array
+      console.log('No existing squad wins file');
+    }
+
+    // Create new squad win
+    const newWin: SquadWin = {
+      id: Date.now().toString(),
+      players: players.map((p: string) => p.trim()).filter((p: string) => p.length > 0),
+      date: new Date().toISOString().split('T')[0],
+      createdAt: new Date().toISOString(),
+    };
+
+    squadWins.push(newWin);
+
+    // Save to blob (overwrite existing)
+    await put(SQUAD_WINS_BLOB_KEY, JSON.stringify(squadWins, null, 2), {
+      access: 'public',
+      contentType: 'application/json',
+    });
+
+    return NextResponse.json(newWin, { status: 201 });
+  } catch (error) {
+    console.error('Error saving squad win:', error);
+    return NextResponse.json(
+      { error: 'Failed to save squad win' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Read existing wins
+    const { blobs } = await list({ prefix: SQUAD_WINS_BLOB_KEY });
+    if (blobs.length === 0) {
+      return NextResponse.json({ success: true });
+    }
+
+    const response = await fetch(blobs[0].url);
+    const squadWins: SquadWin[] = await response.json();
+    const filtered = squadWins.filter(win => win.id !== id);
+
+    // Save updated list
+    await put(SQUAD_WINS_BLOB_KEY, JSON.stringify(filtered, null, 2), {
+      access: 'public',
+      contentType: 'application/json',
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting squad win:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete squad win' },
+      { status: 500 }
+    );
+  }
+}
+
